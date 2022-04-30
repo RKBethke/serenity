@@ -585,6 +585,7 @@ GPU::DeviceInfo Device::info() const
         .device_name = "SoftGPU",
         .num_texture_units = GPU::NUM_SAMPLERS,
         .num_lights = NUM_LIGHTS,
+        .max_clip_planes = MAX_CLIP_PLANES,
         .stencil_bits = sizeof(GPU::StencilType) * 8,
         .supports_npot_textures = true,
     };

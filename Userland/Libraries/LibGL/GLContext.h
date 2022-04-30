@@ -162,6 +162,7 @@ public:
     void gl_get_light(GLenum light, GLenum pname, void* params, GLenum type);
     void gl_get_material(GLenum face, GLenum pname, void* params, GLenum type);
     void gl_clip_plane(GLenum plane, GLdouble const* equation);
+    void gl_get_clip_plane(GLenum plane, GLdouble* equation);
     void gl_array_element(GLint i);
     void gl_copy_tex_sub_image_2d(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height);
 
@@ -270,6 +271,13 @@ private:
 
     GLenum m_current_read_buffer = GL_BACK;
     GLenum m_current_draw_buffer = GL_BACK;
+ 
+    // User-defined clip planes
+    struct ClipPlaneAttributes {
+        FloatVector4 user_clip_plane[6]; // TODO: Change to use device-defined constant
+        FloatVector4 proj_clip_plane[6];
+		GLuint enabled { 0 };
+    } clip_plane_attrib;
 
     // Client side arrays
     bool m_client_side_vertex_array_enabled { false };
@@ -406,6 +414,7 @@ private:
             decltype(&GLContext::gl_color_material),
             decltype(&GLContext::gl_get_light),
             decltype(&GLContext::gl_clip_plane),
+            decltype(&GLContext::gl_get_clip_plane),
             decltype(&GLContext::gl_array_element),
             decltype(&GLContext::gl_copy_tex_sub_image_2d)>;
 
