@@ -383,7 +383,15 @@ void GLContext::gl_end()
         VERIFY_NOT_REACHED();
     }
 
-    m_rasterizer->draw_primitives(primitive_type, m_model_view_matrix, m_projection_matrix, m_texture_matrix, m_vertex_list, enabled_texture_units);
+    // TODO: Replace magic number 6 with compile-time constant
+    Vector<FloatVector4, 6> user_clip_planes;
+    for (size_t pl_idx = 0; pl_idx < 6; ++pl_idx) {
+        if (clip_plane_attrib.enabled & (1 << pl_idx)) {
+	    user_clip_planes.append(clip_plane_attrib.eye_clip_plane[pl_idx]);
+	}
+    }
+
+    m_rasterizer->draw_primitives(primitive_type, m_model_view_matrix, m_projection_matrix, m_texture_matrix, m_vertex_list, enabled_texture_units, user_clip_planes);
 
     m_vertex_list.clear_with_capacity();
 }
@@ -632,25 +640,17 @@ void GLContext::gl_enable(GLenum capability)
     bool update_rasterizer_options = false;
 
     switch (capability) {
-	case GL_CLIP_PLANE0:
-	case GL_CLIP_PLANE1:
-	case GL_CLIP_PLANE2:
-	case GL_CLIP_PLANE3:
-	case GL_CLIP_PLANE4:
-	case GL_CLIP_PLANE5:
-		{
-		size_t pl_idx = (size_t)capability - (size_t)GL_CLIP_PLANE0;
-		if ( clip_plane_attrib.enabled & (1 << pl_idx))
-			break;
-
-		clip_plane_attrib.enabled &= (1 << pl_idx);
-
-		auto proj_plane = m_projection_matrix.inverse() * clip_plane_attrib.user_clip_plane[pl_idx];
-		clip_plane_attrib.proj_clip_plane[pl_idx] = proj_plane;
-			
-		update_rasterizer_options = true;
-		}
-		break;
+    case GL_CLIP_PLANE0:
+    case GL_CLIP_PLANE1:
+    case GL_CLIP_PLANE2:
+    case GL_CLIP_PLANE3:
+    case GL_CLIP_PLANE4:
+    case GL_CLIP_PLANE5:
+	{
+	size_t pl_idx = (size_t)capability - (size_t)GL_CLIP_PLANE0;
+	clip_plane_attrib.enabled |= (1 << pl_idx);
+	}
+	break;
     case GL_COLOR_MATERIAL:
         m_color_material_enabled = true;
         break;
@@ -758,18 +758,17 @@ void GLContext::gl_disable(GLenum capability)
     bool update_rasterizer_options = false;
 
     switch (capability) {
-	case GL_CLIP_PLANE0:
-	case GL_CLIP_PLANE1:
-	case GL_CLIP_PLANE2:
-	case GL_CLIP_PLANE3:
-	case GL_CLIP_PLANE4:
-	case GL_CLIP_PLANE5:
-		{
-		size_t pl_idx = (size_t)capability - (size_t)GL_CLIP_PLANE0;
-		clip_plane_attrib.enabled &= ~(1 << pl_idx);
-        update_rasterizer_options = true;
-		}
-		break;
+    case GL_CLIP_PLANE0:
+    case GL_CLIP_PLANE1:
+    case GL_CLIP_PLANE2:
+    case GL_CLIP_PLANE3:
+    case GL_CLIP_PLANE4:
+    case GL_CLIP_PLANE5:
+	    {
+	    size_t pl_idx = (size_t)capability - (size_t)GL_CLIP_PLANE0;
+	    clip_plane_attrib.enabled &= ~(1 << pl_idx);
+	    }
+	    break;
     case GL_COLOR_MATERIAL:
         m_color_material_enabled = false;
         break;
@@ -2006,30 +2005,18 @@ void GLContext::gl_clip_plane(GLenum plane, GLdouble const* equation)
 
     size_t pl_idx = (size_t)GL_CLIP_PLANE0 - (size_t)plane;
 
-    // `equation` is transformed by the inverse of the modelview matrix and
-    // stored in the resulting eye coordinates
-    auto transformed_eqn = FloatVector4(equation[0], equation[1], equation[2], equation[3]);
-    transformed_eqn = m_model_view_matrix.inverse() * transformed_eqn;
-    
-    clip_plane_attrib.user_clip_plane[pl_idx] = transformed_eqn;
-
-    // Update clip plane projection
-    if (clip_plane_attrib.enabled & (1 << pl_idx)) {
-        auto proj_plane = m_projection_matrix.inverse() * transformed_eqn;
-        clip_plane_attrib.user_clip_plane[pl_idx] = proj_plane;
-    }
-
-    // dbgln_if(GL_DEBUG, "GLContext FIXME: implement gl_clip_plane() (equation = [{} {} {} {}])", equation[0], equation[1], equation[2], equation[3]);
+    auto eqn = FloatVector4(equation[0], equation[1], equation[2], equation[3]);
+    clip_plane_attrib.eye_clip_plane[pl_idx] = m_model_view_matrix * eqn;
 }
 
 void GLContext::gl_get_clip_plane(GLenum plane, GLdouble* equation)
 {
     RETURN_WITH_ERROR_IF((plane < GL_CLIP_PLANE0) || (plane > GL_CLIP_PLANE5), GL_INVALID_ENUM);
     size_t pl_idx = (size_t)GL_CLIP_PLANE0 - (size_t)plane;
-    equation[0] = (GLdouble) clip_plane_attrib.user_clip_plane[pl_idx][0];
-    equation[1] = (GLdouble) clip_plane_attrib.user_clip_plane[pl_idx][1];
-    equation[2] = (GLdouble) clip_plane_attrib.user_clip_plane[pl_idx][2];
-    equation[3] = (GLdouble) clip_plane_attrib.user_clip_plane[pl_idx][3];
+    equation[0] = (GLdouble) clip_plane_attrib.eye_clip_plane[pl_idx][0];
+    equation[1] = (GLdouble) clip_plane_attrib.eye_clip_plane[pl_idx][1];
+    equation[2] = (GLdouble) clip_plane_attrib.eye_clip_plane[pl_idx][2];
+    equation[3] = (GLdouble) clip_plane_attrib.eye_clip_plane[pl_idx][3];
 }
 
 void GLContext::gl_enable_client_state(GLenum cap)

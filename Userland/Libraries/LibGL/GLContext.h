@@ -274,9 +274,9 @@ private:
  
     // User-defined clip planes
     struct ClipPlaneAttributes {
-        FloatVector4 user_clip_plane[6]; // TODO: Change to use device-defined constant
+        FloatVector4 eye_clip_plane[6]; // TODO: Change to use device-defined constant
         FloatVector4 proj_clip_plane[6];
-		GLuint enabled { 0 };
+	GLuint enabled { 0 };
     } clip_plane_attrib;
 
     // Client side arrays

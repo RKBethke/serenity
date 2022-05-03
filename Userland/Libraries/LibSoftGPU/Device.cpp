@@ -642,7 +642,7 @@ static void generate_texture_coordinates(GPU::Vertex& vertex, GPU::RasterizerOpt
 }
 
 void Device::draw_primitives(GPU::PrimitiveType primitive_type, FloatMatrix4x4 const& model_view_transform, FloatMatrix4x4 const& projection_transform,
-    FloatMatrix4x4 const& texture_transform, Vector<GPU::Vertex> const& vertices, Vector<size_t> const& enabled_texture_units)
+    FloatMatrix4x4 const& texture_transform, Vector<GPU::Vertex> const& vertices, Vector<size_t> const& enabled_texture_units, Vector<FloatVector4> const& user_clip_planes)
 {
     // At this point, the user has effectively specified that they are done with defining the geometry
     // of what they want to draw. We now need to do a few things (https://www.khronos.org/opengl/wiki/Rendering_Pipeline_Overview):
@@ -655,6 +655,7 @@ void Device::draw_primitives(GPU::PrimitiveType primitive_type, FloatMatrix4x4 c
     // 6.   The vertices are then sent off to the rasterizer and drawn to the screen
 
     m_enabled_texture_units = enabled_texture_units;
+    m_clip_planes = user_clip_planes;
 
     m_triangle_list.clear_with_capacity();
     m_processed_triangles.clear_with_capacity();
@@ -879,6 +880,9 @@ void Device::draw_primitives(GPU::PrimitiveType primitive_type, FloatMatrix4x4 c
         m_clipped_vertices.append(triangle.vertices[1]);
         m_clipped_vertices.append(triangle.vertices[2]);
         m_clipper.clip_triangle_against_frustum(m_clipped_vertices);
+	
+	if (m_clip_planes.size() > 0)
+            m_clipper.clip_triangle_against_user_defined(m_clipped_vertices, m_clip_planes);
 
         if (m_clipped_vertices.size() < 3)
             continue;
