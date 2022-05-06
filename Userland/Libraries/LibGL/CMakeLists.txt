@@ -4,6 +4,7 @@ set(SOURCES
     GLContext.cpp
     Matrix.cpp
     Lighting.cpp
+    ClipPlanes.cpp
     Lists.cpp
     Stencil.cpp
     Tex/NameAllocator.cpp

@@ -132,6 +132,11 @@ void glClipPlane(GLenum plane, GLdouble const* equation)
     g_gl_context->gl_clip_plane(plane, equation);
 }
 
+void glGetClipPlane(GLenum plane, GLdouble* equation)
+{
+    g_gl_context->gl_get_clip_plane(plane, equation);
+}
+
 void glColor3d(GLdouble r, GLdouble g, GLdouble b)
 {
     g_gl_context->gl_color(r, g, b, 1.0);

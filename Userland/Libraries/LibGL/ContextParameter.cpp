@@ -96,6 +96,8 @@ Optional<ContextParameter> GLContext::get_context_parameter(GLenum name)
                 } }
         };
     } break;
+    case GL_MAX_CLIP_PLANES:
+        return ContextParameter { .type = GL_INT, .value = { .integer_value = static_cast<GLint>(m_device_info.max_clip_planes) } };
     case GL_SCISSOR_TEST: {
         auto scissor_enabled = m_rasterizer->options().scissor_enabled;
         return ContextParameter { .type = GL_BOOL, .is_capability = true, .value = { .boolean_value = scissor_enabled } };
@@ -163,6 +165,17 @@ void GLContext::gl_disable(GLenum capability)
     bool update_rasterizer_options = false;
 
     switch (capability) {
+    case GL_CLIP_PLANE0:
+    case GL_CLIP_PLANE1:
+    case GL_CLIP_PLANE2:
+    case GL_CLIP_PLANE3:
+    case GL_CLIP_PLANE4:
+    case GL_CLIP_PLANE5: {
+        auto plane_idx = static_cast<size_t>(capability) - GL_CLIP_PLANE0;
+        m_clip_plane_attrib.enabled &= ~(1 << plane_idx);
+        m_clip_planes_dirty = true;
+        break;
+    }
     case GL_COLOR_MATERIAL:
         m_color_material_enabled = false;
         break;
@@ -292,6 +305,17 @@ void GLContext::gl_enable(GLenum capability)
     bool update_rasterizer_options = false;
 
     switch (capability) {
+    case GL_CLIP_PLANE0:
+    case GL_CLIP_PLANE1:
+    case GL_CLIP_PLANE2:
+    case GL_CLIP_PLANE3:
+    case GL_CLIP_PLANE4:
+    case GL_CLIP_PLANE5: {
+        auto plane_idx = static_cast<size_t>(capability) - GL_CLIP_PLANE0;
+        m_clip_plane_attrib.enabled |= (1 << plane_idx);
+        m_clip_planes_dirty = true;
+        break;
+    }
     case GL_COLOR_MATERIAL:
         m_color_material_enabled = true;
         break;
